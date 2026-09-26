@@ -1,18 +1,29 @@
 "use client";
 
+import dynamic from 'next/dynamic';
 import Navbar from "@/components/Navbar";
 import SpotlightCard from "@/components/ui/SpotlightCard";
 import LineWaves from "@/components/ui/LineWaves"; 
 import { Wind, Eye, CloudRain, Waves, Thermometer, Timer } from "lucide-react";
+
+// Dynamically import the map with SSR disabled to prevent Leaflet window errors
+const InteractiveMap = dynamic(() => import('@/components/MapComponent'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full flex items-center justify-center bg-[#03045E]/80 backdrop-blur-md">
+      <div className="w-8 h-8 border-4 border-[#00b4d8] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  )
+});
 
 const guestData = {
   locationContext: "Demo Region: Chennai Coast",
   aiExplanation: "Arova AI Analysis: Current marine conditions are optimal. High chlorophyll and favorable temperatures indicate an active Potential Fishing Zone (PFZ) in this region. Weather parameters confirm safe navigation with wave heights under 2 meters.",
   metrics: [
     { label: "Wind", status: "Moderate", value: "(10.3 km/h)", icon: Wind, statusColor: "text-white" },
-    { label: "Visibility", status: "Good", value: "(10.0 km)", icon: Eye, statusColor: "text-[#00e676]" }, // Emerald green
+    { label: "Visibility", status: "Good", value: "(10.0 km)", icon: Eye, statusColor: "text-[#00e676]" },
     { label: "Conditions", status: "Rain", value: "(Sky status)", icon: CloudRain, statusColor: "text-white" },
-    { label: "Wave Height", status: "Moderate", value: "(1.2 M)", icon: Waves, statusColor: "text-[#ffc107]" }, // Warning yellow
+    { label: "Wave Height", status: "Moderate", value: "(1.2 M)", icon: Waves, statusColor: "text-[#ffc107]" },
     { label: "Sea Temp (SST)", status: "Optimal", value: "(25.95°C)", icon: Thermometer, statusColor: "text-white" },
     { label: "Wave Period", status: "Moderate Swells", value: "(7.5 s)", icon: Timer, statusColor: "text-white" }
   ]
@@ -22,7 +33,6 @@ export default function GuestPage() {
   return (
     <div className="h-screen w-full flex flex-col font-sans bg-[#010214] text-[#caf0f8] overflow-hidden relative">
       
-      {/* Animated Background Layer */}
       <div className="absolute inset-0 z-0 opacity-25">
         <LineWaves 
           speed={0.15}
@@ -41,7 +51,6 @@ export default function GuestPage() {
         />
       </div>
 
-      {/* Foreground */}
       <div className="relative z-10 flex flex-col h-full w-full pointer-events-none">
         
         <div className="pointer-events-auto w-full flex justify-center">
@@ -59,15 +68,9 @@ export default function GuestPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 pb-4 min-h-0">
             
-            {/* Main Canvas: Map (Height increased via flex-grow and min-h) */}
-            <section className="lg:col-span-2 bg-[#0077B6]/10 backdrop-blur-sm border border-[#90e0ef]/30 rounded-2xl relative overflow-hidden flex items-center justify-center h-full min-h-[400px] lg:min-h-[500px] shadow-[inset_0_0_40px_rgba(0,119,182,0.2)] pointer-events-auto">
-               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay pointer-events-none"></div>
-               <SpotlightCard className="max-w-md text-center bg-[#03045E]/80 backdrop-blur-md border-[#90e0ef]/40" spotlightColor="rgba(0, 180, 216, 0.25)">
-                  <h3 className="text-2xl font-bold text-white mb-3">Interactive Smart Map</h3>
-                  <p className="text-sm opacity-100 font-medium leading-relaxed text-[#caf0f8]">
-                    This interactive canvas visualizes ISRO satellite data, overlaying weather warnings, Potential Fishing Zones, and geofenced boundaries for real-time maritime intelligence.
-                  </p>
-               </SpotlightCard>
+            {/* Main Canvas: Interactive Leaflet Map */}
+            <section className="lg:col-span-2 bg-[#0077B6]/10 backdrop-blur-sm border border-[#90e0ef]/30 rounded-2xl relative overflow-hidden h-full min-h-[400px] lg:min-h-[500px] shadow-[inset_0_0_40px_rgba(0,119,182,0.2)] pointer-events-auto p-1">
+               <InteractiveMap />
             </section>
 
             {/* Right Panel: AI Insights & Context */}
@@ -85,7 +88,7 @@ export default function GuestPage() {
               </SpotlightCard>
             </section>
 
-            {/* Bottom Panel: Horizontal Metrics Row (6 items) */}
+            {/* Bottom Panel: Horizontal Metrics Row */}
             <section className="lg:col-span-3 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 shrink-0">
               {guestData.metrics.map((item, index) => (
                 <SpotlightCard 
