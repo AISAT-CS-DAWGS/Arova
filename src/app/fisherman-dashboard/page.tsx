@@ -13,7 +13,7 @@ import {
   Mic,
   Map as MapIcon,
 } from "lucide-react";
-
+import EEZMap from "@/components/EEZMap";
 // --- EVALUATION LOGIC FOR ZERO-JARGON METRICS ---
 function getWindStatus(speedMs: number) {
   const speedKmh = speedMs * 3.6;
@@ -155,18 +155,29 @@ export default async function DashboardPage() {
           <MetricCard icon={<Timer />} title="Wave Period" value={data.wavePeriod.main} sub={data.wavePeriod.sub} valueColor={data.wavePeriod.color} />
         </div>
 
+        
         {/* Maps Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
-          <div className="bg-[#0077B6]/10 backdrop-blur-md border border-[#0077B6]/30 rounded-[2.5rem] p-8 aspect-video flex flex-col items-center justify-center group hover:bg-[#0077B6]/20 hover:border-[#00B4D8]/50 transition-all duration-300 cursor-pointer relative overflow-hidden shadow-lg">
-            <MapIcon className="w-12 h-12 text-[#90E0EF] mb-4 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
-            <h3 className="text-2xl md:text-3xl font-bold text-[#CAF0F8] tracking-wide">EEZ map</h3>
-            <p className="text-[#90E0EF]/60 text-sm mt-2 uppercase tracking-widest font-semibold">Exclusive Economic Zone</p>
+          
+          {/* EEZ Map Container */}
+          <div className="relative aspect-video w-full rounded-[2.5rem] overflow-hidden border border-[#0077B6]/30 shadow-lg bg-[#0077B6]/10">
+            {/* Map Overlay Title */}
+            <div className="absolute top-4 left-16 z-[1000] pointer-events-none drop-shadow-md">
+              <h3 className="text-xl md:text-2xl font-bold text-[#CAF0F8] tracking-wide">EEZ map</h3>
+              <p className="text-[#90E0EF] text-xs mt-1 uppercase tracking-widest font-semibold">Exclusive Economic Zone</p>
+            </div>
+            
+            {/* The Actual Leaflet Map Component */}
+            <EEZMap />
           </div>
+
+          {/* PFZ Map Placeholder */}
           <div className="bg-[#0077B6]/10 backdrop-blur-md border border-[#0077B6]/30 rounded-[2.5rem] p-8 aspect-video flex flex-col items-center justify-center group hover:bg-[#0077B6]/20 hover:border-[#00B4D8]/50 transition-all duration-300 cursor-pointer relative overflow-hidden shadow-lg">
             <MapIcon className="w-12 h-12 text-[#90E0EF] mb-4 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
             <h3 className="text-2xl md:text-3xl font-bold text-[#CAF0F8] tracking-wide">PFZ map</h3>
             <p className="text-[#90E0EF]/60 text-sm mt-2 uppercase tracking-widest font-semibold">Potential Fishing Zone</p>
           </div>
+
         </div>
       </main>
 
