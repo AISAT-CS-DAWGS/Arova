@@ -544,14 +544,6 @@ export default function LoginPage() {
 
           <div className="mb-8 text-center">
 
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#90E0EF]/45 bg-[#0077B6]/20 shadow-[0_0_30px_rgba(0,180,216,0.18)]">
-              <Anchor className="h-7 w-7 text-[#90E0EF]" />
-            </div>
-
-            <p className="text-xs font-black uppercase tracking-[0.35em] text-[#90E0EF]">
-              AROVA MARINE INTELLIGENCE
-            </p>
-
             <h1 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
               {isSignup
                 ? "Join the AROVA community."
