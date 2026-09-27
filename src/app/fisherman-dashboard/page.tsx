@@ -1,234 +1,150 @@
 import React from "react";
-import Navbar from "@/components/Navbar";
-import {
-  Menu,
-  ChevronDown,
-  Sun,
-  Wind,
-  Eye,
-  CloudRain,
-  Waves,
-  Thermometer,
-  Timer,
-  Mic,
-  Map as MapIcon,
-} from "lucide-react";
-import EEZMap from "@/components/EEZMap";
-import PFZMap from "@/components/PFZMap";
+import FishermanDashboardView, { OceanDataPayload } from "@/components/FishermanDashboardView";
 
-// --- EVALUATION LOGIC FOR ZERO-JARGON METRICS ---
 function getWindStatus(speedMs: number) {
   const speedKmh = speedMs * 3.6;
-  if (speedKmh >= 40) return { status: "Danger (High)", color: "text-red-400" };
-  if (speedKmh >= 20) return { status: "Strong", color: "text-amber-400" };
-  if (speedKmh >= 10) return { status: "Moderate", color: "text-white" };
-  return { status: "Calm", color: "text-[#00F5D4]" };
+  if (speedKmh >= 40) return { key: "danger_high", status: "Danger (High)", color: "text-red-400" };
+  if (speedKmh >= 20) return { key: "strong", status: "Strong", color: "text-amber-400" };
+  if (speedKmh >= 10) return { key: "moderate", status: "Moderate", color: "text-white" };
+  return { key: "calm", status: "Calm", color: "text-emerald-400" };
 }
 
 function getWaveStatus(heightM: number) {
-  if (heightM >= 2.5) return { status: "Danger (High)", color: "text-red-400" };
-  if (heightM >= 1.2) return { status: "Moderate", color: "text-amber-400" };
-  if (heightM >= 0.5) return { status: "Smooth", color: "text-white" };
-  return { status: "Calm", color: "text-[#00F5D4]" };
+  if (heightM >= 2.5) return { key: "danger_high", status: "Danger (High)", color: "text-red-400" };
+  if (heightM >= 1.2) return { key: "moderate", status: "Moderate", color: "text-amber-400" };
+  if (heightM >= 0.5) return { key: "smooth", status: "Smooth", color: "text-white" };
+  return { key: "calm", status: "Calm", color: "text-emerald-400" };
+}
+
+function getSwellStatus(heightM: number) {
+  if (heightM >= 2.0) return { key: "heavy_swell", status: "Heavy Swell", color: "text-red-400" };
+  if (heightM >= 1.0) return { key: "moderate_swells", status: "Moderate", color: "text-amber-400" };
+  return { key: "light_swell", status: "Light Swell", color: "text-emerald-400" };
 }
 
 function getVisibilityStatus(visKm: number) {
-  if (visKm < 2) return { status: "Poor", color: "text-red-400" };
-  if (visKm < 5) return { status: "Moderate", color: "text-amber-400" };
-  return { status: "Good", color: "text-[#00F5D4]" };
+  if (visKm < 2) return { key: "poor", status: "Poor", color: "text-red-400" };
+  if (visKm < 5) return { key: "moderate", status: "Moderate", color: "text-amber-400" };
+  return { key: "good", status: "Good", color: "text-emerald-400" };
 }
 
 function getWavePeriodStatus(seconds: number) {
-  if (seconds < 6) return { status: "Choppy", color: "text-amber-400" };
-  if (seconds <= 9) return { status: "Moderate Swells", color: "text-white" };
-  return { status: "Long Swells", color: "text-[#00F5D4]" };
+  if (seconds < 6) return { key: "choppy", status: "Choppy", color: "text-amber-400" };
+  if (seconds <= 9) return { key: "moderate_swells", status: "Moderate Swells", color: "text-white" };
+  return { key: "long_swells", status: "Long Swells", color: "text-emerald-400" };
 }
 
-// --- API FETCH FUNCTION ---
-async function getOceanData() {
-  const lat = 9.9312;
-  const lon = 76.2673;
+function getCurrentVelocityStatus(velocityKmh: number) {
+  if (velocityKmh >= 2.0) return { key: "strong", status: "Strong", color: "text-amber-400" };
+  if (velocityKmh >= 0.5) return { key: "moderate", status: "Moderate", color: "text-white" };
+  return { key: "weak", status: "Weak", color: "text-emerald-400" };
+}
 
+function getDirection(degree: number | undefined | null) {
+  if (degree === undefined || degree === null) return "N/A";
+  const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  const val = Math.floor(degree / 45 + 0.5);
+  return directions[val % 8];
+}
+
+async function getOceanData(lat: number, lon: number): Promise<OceanDataPayload | null> {
   try {
-    // 1. Fetch Marine Data
-    const marineRes = await fetch(
-      `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period&timezone=auto`,
-      { next: { revalidate: 3600 } }
-    );
-    const marineData = await marineRes.json();
-    const currentHourIndex = new Date().getHours();
-    const waveHeightRaw = marineData.hourly?.wave_height[currentHourIndex] ?? 1.2;
-    const wavePeriodRaw = marineData.hourly?.wave_period[currentHourIndex] ?? 8;
-
-    // 2. Fetch Weather Data
     const owmKey = process.env.NEXT_PUBLIC_OWM_API_KEY;
-    let weatherData = null;
-    
-    if (owmKey) {
-      const weatherRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${owmKey}&units=metric`,
-        { next: { revalidate: 3600 } }
-      );
-      weatherData = await weatherRes.json();
-    }
+    if (!owmKey) throw new Error("OpenWeatherMap API Key is missing.");
 
-    const windMs = weatherData?.wind.speed ?? 4.5;
-    const visKm = weatherData ? weatherData.visibility / 1000 : 10;
-    const tempRaw = weatherData?.main.temp ?? 28.5;
+    const weatherRes = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${owmKey}&units=metric`,
+      { next: { revalidate: 1800 } }
+    );
+    if (!weatherRes.ok) throw new Error("Failed to fetch weather data.");
+    const weatherData = await weatherRes.json();
 
-    // Evaluate statuses
+    const marineRes = await fetch(
+      `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=wave_height,wave_period,swell_wave_height,swell_wave_period,wave_direction,ocean_current_velocity,ocean_current_direction&timezone=auto`,
+      { next: { revalidate: 1800 } }
+    );
+    if (!marineRes.ok) throw new Error("Failed to fetch marine data.");
+    const marineData = await marineRes.json();
+
+    const currentHourIndex = new Date().getHours();
+
+    const waveHeightRaw = marineData.hourly?.wave_height?.[currentHourIndex];
+    const wavePeriodRaw = marineData.hourly?.wave_period?.[currentHourIndex];
+    const swellHeightRaw = marineData.hourly?.swell_wave_height?.[currentHourIndex];
+    const swellPeriodRaw = marineData.hourly?.swell_wave_period?.[currentHourIndex];
+    const waveDirRaw = marineData.hourly?.wave_direction?.[currentHourIndex];
+    const currentVelRaw = marineData.hourly?.ocean_current_velocity?.[currentHourIndex];
+    const currentDirRaw = marineData.hourly?.ocean_current_direction?.[currentHourIndex];
+
+    const windMs = weatherData.wind?.speed ?? 0;
+    const visKm = (weatherData.visibility ?? 10000) / 1000;
+    const tempRaw = weatherData.main?.temp ?? 0;
+    const conditions = weatherData.weather?.[0]?.main ?? "Clear";
+
     const wind = getWindStatus(windMs);
-    const waves = getWaveStatus(waveHeightRaw);
+    const waves = getWaveStatus(waveHeightRaw ?? 0);
     const visibility = getVisibilityStatus(visKm);
-    const wavePeriod = getWavePeriodStatus(wavePeriodRaw);
+    const wavePeriod = getWavePeriodStatus(wavePeriodRaw ?? 0);
+    const swell = getSwellStatus(swellHeightRaw ?? 0);
+    const swellPeriod = getWavePeriodStatus(swellPeriodRaw ?? 0);
+    const currentVel = getCurrentVelocityStatus(currentVelRaw ?? 0);
+    const waveDirStr = getDirection(waveDirRaw);
+    const currentDirStr = getDirection(currentDirRaw);
 
     return {
-      wind: { main: wind.status, sub: `${(windMs * 3.6).toFixed(1)} km/h`, color: wind.color },
-      visibility: { main: visibility.status, sub: `${visKm.toFixed(1)} km`, color: visibility.color },
-      conditions: { main: weatherData ? weatherData.weather[0].main : "Clear", sub: "Sky status", color: "text-white" },
-      waveHeight: { main: waves.status, sub: `${waveHeightRaw} M`, color: waves.color },
-      temp: { main: "Optimal", sub: `${tempRaw}°C`, color: "text-white" }, // Sea temp usually doesn't need a danger rating for sailing
-      wavePeriod: { main: wavePeriod.status, sub: `${wavePeriodRaw} s`, color: wavePeriod.color },
+      wind: { main: wind.status, key: wind.key, sub: `${(windMs * 3.6).toFixed(1)} km/h`, color: wind.color },
+      visibility: { main: visibility.status, key: visibility.key, sub: `${visKm.toFixed(1)} km`, color: visibility.color },
+      conditions: { main: conditions, key: conditions.toLowerCase(), sub: "Sky status", color: "text-white" },
+      temp: { main: "Optimal", key: "optimal", sub: `${tempRaw}°C`, color: "text-white" },
+
+      waveHeight:
+        waveHeightRaw !== null && waveHeightRaw !== undefined
+          ? { main: waves.status, key: waves.key, sub: `${waveHeightRaw} M`, color: waves.color }
+          : { main: "Inland", key: "inland", sub: "N/A", color: "opacity-50" },
+      wavePeriod:
+        wavePeriodRaw !== null && wavePeriodRaw !== undefined
+          ? { main: wavePeriod.status, key: wavePeriod.key, sub: `${wavePeriodRaw} s`, color: wavePeriod.color }
+          : { main: "Inland", key: "inland", sub: "N/A", color: "opacity-50" },
+
+      swellHeight:
+        swellHeightRaw !== null && swellHeightRaw !== undefined
+          ? { main: swell.status, key: swell.key, sub: `${swellHeightRaw} M`, color: swell.color }
+          : { main: "Inland", key: "inland", sub: "N/A", color: "opacity-50" },
+      swellPeriod:
+        swellPeriodRaw !== null && swellPeriodRaw !== undefined
+          ? { main: swellPeriod.status, key: swellPeriod.key, sub: `${swellPeriodRaw} s`, color: swellPeriod.color }
+          : { main: "Inland", key: "inland", sub: "N/A", color: "opacity-50" },
+      waveDirection:
+        waveDirRaw !== null && waveDirRaw !== undefined
+          ? { main: `Pushing ${waveDirStr}`, sub: `${waveDirRaw}°`, color: "text-white" }
+          : { main: "Inland", key: "inland", sub: "N/A", color: "opacity-50" },
+      currentVelocity:
+        currentVelRaw !== null && currentVelRaw !== undefined
+          ? { main: currentVel.status, key: currentVel.key, sub: `${currentVelRaw} km/h`, color: currentVel.color }
+          : { main: "Inland", key: "inland", sub: "N/A", color: "opacity-50" },
+      currentDirection:
+        currentDirRaw !== null && currentDirRaw !== undefined
+          ? { main: `Flowing ${currentDirStr}`, sub: `${currentDirRaw}°`, color: "text-white" }
+          : { main: "Inland", key: "inland", sub: "N/A", color: "opacity-50" },
     };
   } catch (error) {
-    console.error("Failed to fetch ocean data", error);
-    // Fallback data
-    return {
-      wind: { main: "Moderate", sub: "16 km/h", color: "text-white" },
-      visibility: { main: "Good", sub: "10 km", color: "text-[#00F5D4]" },
-      conditions: { main: "Clear", sub: "Sky status", color: "text-white" },
-      waveHeight: { main: "Smooth", sub: "1.2 M", color: "text-white" },
-      temp: { main: "Optimal", sub: "28.5°C", color: "text-white" },
-      wavePeriod: { main: "Moderate Swells", sub: "8 s", color: "text-white" },
-    };
+    console.error("Ocean data fetch failed:", error);
+    return null;
   }
 }
 
-export default async function DashboardPage() {
-  const data = await getOceanData();
-
-  return (
-    <div className="min-h-screen bg-[#03045E] text-white font-sans relative pb-24">
-      <Navbar />
-
-      <main className="max-w-7xl mx-auto px-6 pt-8">
-        
-        {/* Top Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div className="flex items-center gap-4">
-            <button className="p-2 -ml-2 hover:bg-white/10 rounded-xl transition-colors md:hidden text-[#CAF0F8]">
-              <Menu className="w-7 h-7" />
-            </button>
-            <div>
-              <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-[#CAF0F8] to-[#90E0EF] tracking-tight">
-                Greetings User,
-              </h1>
-              <p className="text-[#90E0EF] mt-1 font-medium tracking-wide">Kochi, Kerala</p>
-            </div>
-          </div>
-
-          {/* Status Controls */}
-          <div className="flex items-center gap-5 bg-white/5 backdrop-blur-xl border border-[#00B4D8]/30 px-5 py-3 rounded-full shadow-[0_0_20px_rgba(0,180,216,0.1)] w-full md:w-auto justify-between md:justify-start">
-            <div className="flex items-center gap-2 text-sm font-bold text-[#CAF0F8]">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00F5D4] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00F5D4]"></span>
-              </span>
-              Online
-            </div>
-            <div className="w-px h-5 bg-white/20" />
-            <button className="flex items-center gap-1.5 text-sm font-bold text-[#CAF0F8] hover:text-white transition-colors">
-              English <ChevronDown className="w-4 h-4 opacity-70" />
-            </button>
-            <div className="w-px h-5 bg-white/20" />
-            <button className="text-[#CAF0F8] hover:text-white transition-colors hover:rotate-45 duration-300">
-              <Sun className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Actionable Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
-          <MetricCard icon={<Wind />} title="Wind" value={data.wind.main} sub={data.wind.sub} valueColor={data.wind.color} />
-          <MetricCard icon={<Eye />} title="Visibility" value={data.visibility.main} sub={data.visibility.sub} valueColor={data.visibility.color} />
-          <MetricCard icon={<CloudRain />} title="Conditions" value={data.conditions.main} sub={data.conditions.sub} valueColor={data.conditions.color} />
-          <MetricCard icon={<Waves />} title="Wave Height" value={data.waveHeight.main} sub={data.waveHeight.sub} valueColor={data.waveHeight.color} />
-          <MetricCard icon={<Thermometer />} title="Sea Temp (SST)" value={data.temp.main} sub={data.temp.sub} valueColor={data.temp.color} />
-          <MetricCard icon={<Timer />} title="Wave Period" value={data.wavePeriod.main} sub={data.wavePeriod.sub} valueColor={data.wavePeriod.color} />
-        </div>
-
-        
-        {/* Maps Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
-          
-          {/* EEZ Map Container */}
-          <div className="relative aspect-video w-full rounded-[2.5rem] overflow-hidden border border-[#0077B6]/30 shadow-lg bg-[#0077B6]/10">
-            {/* Map Overlay Title */}
-            <div className="absolute top-4 left-16 z-[1000] pointer-events-none drop-shadow-md">
-              <h3 className="text-xl md:text-2xl font-bold text-[#CAF0F8] tracking-wide">EEZ map</h3>
-              <p className="text-[#90E0EF] text-xs mt-1 uppercase tracking-widest font-semibold">Exclusive Economic Zone</p>
-            </div>
-            
-            {/* The Actual Leaflet Map Component */}
-            <EEZMap />
-          </div>
-
-         <div className="relative aspect-video w-full rounded-[2.5rem] overflow-hidden border border-[#0077B6]/30 shadow-lg bg-[#0077B6]/10 group">
-            <div className="absolute top-4 left-16 z-[1000] pointer-events-none drop-shadow-md">
-              <h3 className="text-xl md:text-2xl font-bold text-[#00F5D4] tracking-wide">PFZ map</h3>
-              <p className="text-[#90E0EF] text-xs mt-1 uppercase tracking-widest font-semibold">Potential Fishing Zone</p>
-            </div>
-            {/* Blinking Live Indicator */}
-            <div className="absolute top-6 right-6 z-[1000] flex items-center gap-2 bg-[#00F5D4]/20 border border-[#00F5D4]/40 px-3 py-1 rounded-full backdrop-blur-sm">
-               <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00F5D4] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00F5D4]"></span>
-              </span>
-              <span className="text-[#00F5D4] text-xs font-bold tracking-widest uppercase">Live</span>
-            </div>
-            
-            <PFZMap />
-          </div>
-
-        </div>
-      </main>
-
-      {/* Floating Action Button */}
-      <button className="fixed bottom-8 right-8 md:bottom-12 md:right-12 w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-[#00B4D8] to-[#0077B6] rounded-full flex items-center justify-center shadow-[0_0_35px_rgba(0,180,216,0.6)] hover:scale-110 transition-transform duration-300 group z-50 border-2 border-[#CAF0F8]/20">
-        <div className="absolute inset-0 rounded-full animate-ping bg-[#00B4D8] opacity-30"></div>
-        <Mic className="w-7 h-7 md:w-8 md:h-8 text-white group-hover:text-[#CAF0F8] transition-colors" />
-      </button>
-    </div>
-  );
-}
-
-function MetricCard({ 
-  icon, 
-  title, 
-  value, 
-  sub, 
-  valueColor = "text-white" 
-}: { 
-  icon: React.ReactNode; 
-  title: string; 
-  value: string; 
-  sub?: string;
-  valueColor?: string;
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  return (
-    <div className="bg-gradient-to-r from-[#0077B6]/40 to-[#0077B6]/20 backdrop-blur-lg border border-[#00B4D8]/30 rounded-[2rem] p-5 flex flex-col justify-center hover:from-[#00B4D8]/30 hover:to-[#0077B6]/30 transition-all duration-300 shadow-lg shadow-[#03045E]/50 group">
-      <div className="flex items-center gap-2 text-[#90E0EF] mb-2">
-        {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { 
-          className: "w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity" 
-        })}
-        <span className="text-sm font-semibold tracking-wide">{title}</span>
-      </div>
-      <div className="flex items-baseline gap-2">
-        <span className={`text-2xl md:text-3xl font-bold leading-tight ${valueColor}`}>
-          {value}
-        </span>
-        {sub && <span className="text-sm md:text-base text-[#CAF0F8]/70 font-medium">({sub})</span>}
-      </div>
-    </div>
-  );
+  const params = await searchParams;
+
+  const lat = parseFloat((params?.lat as string) || "9.9312");
+  const lon = parseFloat((params?.lon as string) || "76.2673");
+  const locName = (params?.name as string) || "Kochi, Kerala";
+
+  const data = await getOceanData(lat, lon);
+
+  return <FishermanDashboardView initialData={data} locationName={locName} />;
 }

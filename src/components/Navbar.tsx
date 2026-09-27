@@ -3,19 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function Navbar() {
+export default function Navbar({ theme = "ocean" }: { theme?: "ocean" | "white" | "black" }) {
   const pathname = usePathname();
 
   const navLinks = [
     { name: "HOME", href: "/" },
     { name: "ABOUT", href: "/about" },
-    { name: "DASHBOARD", href: "/dashboard" },
+    { name: "DASHBOARD", href: "/fisherman-dashboard" },
     { name: "LOGIN", href: "/login" },
   ];
 
+  const isWhite = theme === "white";
+  const baseText = isWhite ? "text-slate-500" : "text-[#90E0EF]/70";
+  const hoverText = isWhite ? "hover:text-sky-700" : "hover:text-[#CAF0F8]";
+  const activeText = isWhite ? "text-sky-700 font-bold" : "text-[#CAF0F8]";
+
   return (
     <header className="w-full pt-10 pb-4 relative z-20">
-      <nav className="flex justify-center items-center gap-10 text-sm font-semibold tracking-widest text-[#90E0EF]/70">
+      <nav className={`flex justify-center items-center gap-10 text-sm font-semibold tracking-widest ${baseText}`}>
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
@@ -23,7 +28,7 @@ export default function Navbar() {
               key={link.name}
               href={link.href}
               className={`${
-                isActive ? "text-[#CAF0F8]" : "hover:text-[#CAF0F8]"
+                isActive ? activeText : hoverText
               } transition-colors duration-300`}
             >
               {link.name}
