@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import Navbar from "@/components/Navbar";
 import SpotlightCard from "@/components/ui/SpotlightCard";
-import LineWaves from "@/components/ui/LineWaves"; 
+import Grainient from "@/components/Gradient"; 
 import { Wind, Eye, CloudRain, Waves, Thermometer, Timer } from "lucide-react";
 
 // Dynamically import the map with SSR disabled to prevent Leaflet window errors
@@ -31,26 +31,22 @@ const guestData = {
 
 export default function GuestPage() {
   return (
-    <div className="h-screen w-full flex flex-col font-sans bg-[#010214] text-[#caf0f8] overflow-hidden relative">
+    <div className="h-screen w-full flex flex-col font-sans bg-[#03045E] text-[#caf0f8] overflow-hidden relative">
       
-      <div className="absolute inset-0 z-0 opacity-25">
-        <LineWaves 
-          speed={0.15}
-          innerLineCount={30}
-          outerLineCount={40}
-          warpIntensity={1.5}
-          rotation={-45}
-          edgeFadeWidth={0.2}
-          colorCycleSpeed={1.0}
-          brightness={0.3} 
-          color1="#0077b6"
-          color2="#001d3d" 
-          color3="#00b4d8"
-          enableMouseInteraction={true}
-          mouseInfluence={5.0} 
+      {/* Background Layer */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <Grainient
+          color1="#03045E"
+          color2="#0077B6"
+          color3="#90E0EF"
+          timeSpeed={0.25}
+          className="h-full w-full opacity-80"
         />
+        {/* Darkened readability layer to improve overall contrast */}
+        <div className="absolute inset-0 bg-[#03045E]/40" />
       </div>
 
+      {/* Foreground Container */}
       <div className="relative z-10 flex flex-col h-full w-full pointer-events-none">
         
         <div className="pointer-events-auto w-full flex justify-center">
@@ -59,7 +55,8 @@ export default function GuestPage() {
 
         <main className="flex-1 flex flex-col p-4 md:p-6 lg:px-10 w-full max-w-[1600px] mx-auto gap-4">
           
-          <header className="flex justify-between items-center bg-[#0077B6]/30 backdrop-blur-md p-4 rounded-xl border border-[#90e0ef]/30 shadow-lg shrink-0 pointer-events-auto">
+          {/* Top Header - Darkened */}
+          <header className="flex justify-between items-center bg-[#03045E]/60 backdrop-blur-md p-4 rounded-xl border border-[#90e0ef]/30 shadow-lg shrink-0 pointer-events-auto">
             <div>
               <h1 className="text-2xl font-bold text-white tracking-wide">Guest Dashboard</h1>
               <p className="text-sm font-medium text-[#90e0ef]">Platform Capabilities Demo</p>
@@ -68,21 +65,23 @@ export default function GuestPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 pb-4 min-h-0">
             
-            {/* Main Canvas: Interactive Leaflet Map */}
-            <section className="lg:col-span-2 bg-[#0077B6]/10 backdrop-blur-sm border border-[#90e0ef]/30 rounded-2xl relative overflow-hidden h-full min-h-[400px] lg:min-h-[500px] shadow-[inset_0_0_40px_rgba(0,119,182,0.2)] pointer-events-auto p-1">
+            {/* Main Canvas: Interactive Leaflet Map - Darkened Background */}
+            <section className="lg:col-span-2 bg-[#03045E]/50 backdrop-blur-sm border border-[#90e0ef]/30 rounded-2xl relative overflow-hidden h-full min-h-[400px] lg:min-h-[500px] shadow-[inset_0_0_40px_rgba(0,119,182,0.2)] pointer-events-auto p-1">
                <InteractiveMap />
             </section>
 
             {/* Right Panel: AI Insights & Context */}
             <section className="lg:col-span-1 flex flex-col gap-4 h-full">
-              <SpotlightCard spotlightColor="rgba(0, 180, 216, 0.2)" className="flex flex-col flex-1 bg-[#0077B6]/10 backdrop-blur-md pointer-events-auto border-[#90e0ef]/20">
+              {/* Darkened Card */}
+              <SpotlightCard spotlightColor="rgba(0, 180, 216, 0.2)" className="flex flex-col flex-1 bg-[#03045E]/60 backdrop-blur-md pointer-events-auto border-[#90e0ef]/20 shadow-lg">
                 <h2 className="text-sm font-bold tracking-wider uppercase mb-3 text-[#90e0ef]">Live Insights</h2>
                 <p className="text-sm xl:text-base font-medium leading-relaxed text-white flex-1 overflow-y-auto pr-2">
                   {guestData.aiExplanation}
                 </p>
               </SpotlightCard>
 
-              <SpotlightCard spotlightColor="rgba(0, 180, 216, 0.15)" className="bg-[#0077B6]/10 backdrop-blur-md shrink-0 pointer-events-auto border-[#90e0ef]/20">
+              {/* Darkened Card */}
+              <SpotlightCard spotlightColor="rgba(0, 180, 216, 0.15)" className="bg-[#03045E]/60 backdrop-blur-md shrink-0 pointer-events-auto border-[#90e0ef]/20 shadow-lg">
                 <h3 className="text-sm font-bold tracking-wider uppercase mb-2 text-[#90e0ef]">Location Context</h3>
                 <p className="text-lg text-white font-semibold">{guestData.locationContext}</p>
               </SpotlightCard>
@@ -93,7 +92,8 @@ export default function GuestPage() {
               {guestData.metrics.map((item, index) => (
                 <SpotlightCard 
                   key={index} 
-                  className="flex flex-col justify-center items-start text-left !p-4 bg-[#0077B6]/20 backdrop-blur-md pointer-events-auto border border-[#90e0ef]/20 shadow-sm"
+                  /* Darkened Card */
+                  className="flex flex-col justify-center items-start text-left !p-4 bg-[#03045E]/60 backdrop-blur-md pointer-events-auto border border-[#90e0ef]/20 shadow-lg"
                   spotlightColor="rgba(144, 224, 239, 0.15)"
                 >
                   <div className="flex items-center gap-2 mb-2">
