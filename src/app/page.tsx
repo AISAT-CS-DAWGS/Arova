@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Grainient from "@/components/Gradient";
 import Navbar from "@/components/Navbar";
+
 export default function ArovaLandingPage() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden flex flex-col font-sans bg-[#03045E]">
@@ -34,12 +35,14 @@ export default function ArovaLandingPage() {
             Empowering fishermen, researchers, and authorities with real-time, conversational decision support for safer seas.
           </p>
           
-          <Button 
-            className="bg-[#0077b6] hover:bg-[#00b4d8] text-white border border-[#90e0ef]/40 rounded-full px-10 py-7 text-lg font-semibold group shadow-[0_0_20px_rgba(0,119,182,0.6)] transition-all duration-300"
-          >
-            Explore as Guest
-            <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1.5 transition-transform text-[#caf0f8]" />
-          </Button>
+          <Link href="/guest">
+            <Button 
+              className="bg-[#0077b6] hover:bg-[#00b4d8] text-white border border-[#90e0ef]/40 rounded-full px-10 py-7 text-lg font-semibold group shadow-[0_0_20px_rgba(0,119,182,0.6)] transition-all duration-300"
+            >
+              Explore as Guest
+              <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1.5 transition-transform text-[#caf0f8]" />
+            </Button>
+          </Link>
           
         </main>
       </div>
