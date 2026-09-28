@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import {
   Menu,
@@ -22,8 +23,10 @@ import {
   Palette,
   Check
 } from "lucide-react";
-import dynamic from "next/dynamic";
+import LocationSelector from "@/components/LocationSelector";
+import { SUPPORTED_LANGUAGES, LanguageCode, translate } from "@/lib/translations";
 
+// Dynamically import maps to prevent Next.js SSR hydration errors
 const EEZMap = dynamic(() => import("@/components/EEZMap"), { 
   ssr: false,
   loading: () => <div className="w-full h-full bg-[#03045E] animate-pulse rounded-[2.5rem]" />
@@ -33,8 +36,6 @@ const PFZMap = dynamic(() => import("@/components/PFZMap"), {
   ssr: false,
   loading: () => <div className="w-full h-full bg-[#03045E] animate-pulse rounded-[2.5rem]" />
 });
-import LocationSelector from "@/components/LocationSelector";
-import { SUPPORTED_LANGUAGES, LanguageCode, translate } from "@/lib/translations";
 
 export type ThemeMode = "ocean" | "white" | "black";
 export type SignalLevel = "good" | "moderate" | "weak" | "offline";
@@ -71,7 +72,7 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isThemeOpen, setIsThemeOpen] = useState(false);
 
-  // --- 1. NETWORK STATUS & SIGNAL STRENGTH LOGIC ---
+  // --- NETWORK STATUS & SIGNAL STRENGTH LOGIC ---
   const [isOnline, setIsOnline] = useState(true);
   const [signal, setSignal] = useState<SignalLevel>("good");
 
@@ -85,7 +86,6 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
         return;
       }
 
-      // Check Network Information API if supported by the browser
       const navConn = (navigator as unknown as { connection?: { effectiveType?: string; rtt?: number } }).connection;
       if (navConn) {
         const type = navConn.effectiveType;
@@ -164,7 +164,6 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
     },
   }[theme];
 
-  // Helper for dynamic translation of metric status values
   const translateMetricValue = (item: OceanMetricItem) => {
     if (item.main.startsWith("Pushing")) {
       const dir = item.main.replace("Pushing", "").trim();
@@ -196,23 +195,14 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
             </div>
           </div>
 
-          {/* Status Controls: Signal, Indic Languages, Theme */}
+          {/* Status Controls */}
           <div className="flex flex-wrap items-center gap-3">
-            {/* 1. Network Status Pill */}
             <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full border backdrop-blur-xl text-xs md:text-sm font-bold shadow-lg ${themeClasses.controlPill}`}>
               {isOnline ? (
                 <>
                   <span className="relative flex h-3 w-3">
-                    <span
-                      className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                        signal === "good" ? "bg-emerald-400" : signal === "moderate" ? "bg-amber-400" : "bg-orange-500"
-                      }`}
-                    />
-                    <span
-                      className={`relative inline-flex rounded-full h-3 w-3 ${
-                        signal === "good" ? "bg-emerald-400" : signal === "moderate" ? "bg-amber-400" : "bg-orange-500"
-                      }`}
-                    />
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${signal === "good" ? "bg-emerald-400" : signal === "moderate" ? "bg-amber-400" : "bg-orange-500"}`} />
+                    <span className={`relative inline-flex rounded-full h-3 w-3 ${signal === "good" ? "bg-emerald-400" : signal === "moderate" ? "bg-amber-400" : "bg-orange-500"}`} />
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Wifi className="w-4 h-4 text-emerald-400" />
@@ -227,32 +217,22 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
               )}
             </div>
 
-            {/* 2. Indic Language Dropdown */}
             <div className="relative">
               <button
                 type="button"
-                onClick={() => {
-                  setIsLangOpen(!isLangOpen);
-                  setIsThemeOpen(false);
-                }}
+                onClick={() => { setIsLangOpen(!isLangOpen); setIsThemeOpen(false); }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-full border backdrop-blur-xl text-xs md:text-sm font-bold transition-all shadow-lg ${themeClasses.controlPill}`}
               >
                 <span>{SUPPORTED_LANGUAGES.find((l) => l.code === lang)?.nativeLabel || "English"}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isLangOpen ? "rotate-180" : ""}`} />
               </button>
-
               {isLangOpen && (
                 <div className={`absolute right-0 mt-2 w-48 rounded-2xl border backdrop-blur-2xl shadow-2xl z-50 overflow-hidden py-1.5 ${themeClasses.dropdownBg}`}>
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <button
                       key={l.code}
-                      onClick={() => {
-                        setLang(l.code);
-                        setIsLangOpen(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-xs md:text-sm font-semibold flex items-center justify-between transition-colors ${themeClasses.dropdownHover} ${
-                        lang === l.code ? "text-cyan-400 font-bold" : ""
-                      }`}
+                      onClick={() => { setLang(l.code); setIsLangOpen(false); }}
+                      className={`w-full px-4 py-2 text-left text-xs md:text-sm font-semibold flex items-center justify-between transition-colors ${themeClasses.dropdownHover} ${lang === l.code ? "text-cyan-400 font-bold" : ""}`}
                     >
                       <span>{l.nativeLabel} ({l.label})</span>
                       {lang === l.code && <Check className="w-4 h-4" />}
@@ -262,33 +242,23 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
               )}
             </div>
 
-            {/* 3. Theme Selector Dropdown */}
             <div className="relative">
               <button
                 type="button"
-                onClick={() => {
-                  setIsThemeOpen(!isThemeOpen);
-                  setIsLangOpen(false);
-                }}
+                onClick={() => { setIsThemeOpen(!isThemeOpen); setIsLangOpen(false); }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-full border backdrop-blur-xl text-xs md:text-sm font-bold transition-all shadow-lg ${themeClasses.controlPill}`}
               >
                 <Palette className="w-4 h-4" />
                 <span className="capitalize">{t(`theme_${theme}`)}</span>
                 <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isThemeOpen ? "rotate-180" : ""}`} />
               </button>
-
               {isThemeOpen && (
                 <div className={`absolute right-0 mt-2 w-44 rounded-2xl border backdrop-blur-2xl shadow-2xl z-50 overflow-hidden py-1.5 ${themeClasses.dropdownBg}`}>
                   {(["ocean", "white", "black"] as ThemeMode[]).map((m) => (
                     <button
                       key={m}
-                      onClick={() => {
-                        setTheme(m);
-                        setIsThemeOpen(false);
-                      }}
-                      className={`w-full px-4 py-2 text-left text-xs md:text-sm font-semibold flex items-center justify-between transition-colors ${themeClasses.dropdownHover} ${
-                        theme === m ? "text-cyan-400 font-bold" : ""
-                      }`}
+                      onClick={() => { setTheme(m); setIsThemeOpen(false); }}
+                      className={`w-full px-4 py-2 text-left text-xs md:text-sm font-semibold flex items-center justify-between transition-colors ${themeClasses.dropdownHover} ${theme === m ? "text-cyan-400 font-bold" : ""}`}
                     >
                       <span className="capitalize">{t(`theme_${m}`)}</span>
                       {theme === m && <Check className="w-4 h-4" />}
@@ -303,110 +273,18 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
         {/* Actionable Metrics Grid */}
         {initialData ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-12">
-            <MetricCard
-              icon={<Wind />}
-              title={t("wind")}
-              value={translateMetricValue(initialData.wind)}
-              sub={initialData.wind.sub}
-              valueColor={initialData.wind.color}
-              themeClasses={themeClasses}
-              theme={theme} // <-- ADD THIS TO ALL CARDS
-            />
-            <MetricCard
-              icon={<Eye />}
-              title={t("visibility")}
-              value={translateMetricValue(initialData.visibility)}
-              sub={initialData.visibility.sub}
-              valueColor={initialData.visibility.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-            <MetricCard
-              icon={<CloudRain />}
-              title={t("conditions")}
-              value={translateMetricValue(initialData.conditions)}
-              sub={initialData.conditions.sub}
-              valueColor={initialData.conditions.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-            <MetricCard
-              icon={<Thermometer />}
-              title={t("sea_temp")}
-              value={translateMetricValue(initialData.temp)}
-              sub={initialData.temp.sub}
-              valueColor={initialData.temp.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-
-            <MetricCard
-              icon={<Waves />}
-              title={t("wave_height")}
-              value={translateMetricValue(initialData.waveHeight)}
-              sub={initialData.waveHeight.sub}
-              valueColor={initialData.waveHeight.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-            <MetricCard
-              icon={<Timer />}
-              title={t("wave_period")}
-              value={translateMetricValue(initialData.wavePeriod)}
-              sub={initialData.wavePeriod.sub}
-              valueColor={initialData.wavePeriod.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-            <MetricCard
-              icon={<Compass />}
-              title={t("wave_direction")}
-              value={translateMetricValue(initialData.waveDirection)}
-              sub={initialData.waveDirection.sub}
-              valueColor={initialData.waveDirection.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-
-            <MetricCard
-              icon={<Activity />}
-              title={t("swell_height")}
-              value={translateMetricValue(initialData.swellHeight)}
-              sub={initialData.swellHeight.sub}
-              valueColor={initialData.swellHeight.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-            <MetricCard
-              icon={<Timer />}
-              title={t("swell_period")}
-              value={translateMetricValue(initialData.swellPeriod)}
-              sub={initialData.swellPeriod.sub}
-              valueColor={initialData.swellPeriod.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-
-            <MetricCard
-              icon={<Navigation />}
-              title={t("current_velocity")}
-              value={translateMetricValue(initialData.currentVelocity)}
-              sub={initialData.currentVelocity.sub}
-              valueColor={initialData.currentVelocity.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
-            <MetricCard
-              icon={<Navigation2 />}
-              title={t("current_direction")}
-              value={translateMetricValue(initialData.currentDirection)}
-              sub={initialData.currentDirection.sub}
-              valueColor={initialData.currentDirection.color}
-              themeClasses={themeClasses}
-              theme={theme}
-            />
+            <MetricCard icon={<Wind />} title={t("wind")} value={translateMetricValue(initialData.wind)} sub={initialData.wind.sub} valueColor={initialData.wind.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Eye />} title={t("visibility")} value={translateMetricValue(initialData.visibility)} sub={initialData.visibility.sub} valueColor={initialData.visibility.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<CloudRain />} title={t("conditions")} value={translateMetricValue(initialData.conditions)} sub={initialData.conditions.sub} valueColor={initialData.conditions.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Thermometer />} title={t("sea_temp")} value={translateMetricValue(initialData.temp)} sub={initialData.temp.sub} valueColor={initialData.temp.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Waves />} title={t("wave_height")} value={translateMetricValue(initialData.waveHeight)} sub={initialData.waveHeight.sub} valueColor={initialData.waveHeight.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Timer />} title={t("wave_period")} value={translateMetricValue(initialData.wavePeriod)} sub={initialData.wavePeriod.sub} valueColor={initialData.wavePeriod.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Compass />} title={t("wave_direction")} value={translateMetricValue(initialData.waveDirection)} sub={initialData.waveDirection.sub} valueColor={initialData.waveDirection.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Activity />} title={t("swell_height")} value={translateMetricValue(initialData.swellHeight)} sub={initialData.swellHeight.sub} valueColor={initialData.swellHeight.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Timer />} title={t("swell_period")} value={translateMetricValue(initialData.swellPeriod)} sub={initialData.swellPeriod.sub} valueColor={initialData.swellPeriod.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Navigation />} title={t("current_velocity")} value={translateMetricValue(initialData.currentVelocity)} sub={initialData.currentVelocity.sub} valueColor={initialData.currentVelocity.color} themeClasses={themeClasses} theme={theme} />
+            <MetricCard icon={<Navigation2 />} title={t("current_direction")} value={translateMetricValue(initialData.currentDirection)} sub={initialData.currentDirection.sub} valueColor={initialData.currentDirection.color} themeClasses={themeClasses} theme={theme} />
           </div>
-        
         ) : (
           <div className="bg-red-500/10 border border-red-500/30 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center gap-4 mb-12 shadow-lg">
             <AlertTriangle className="w-12 h-12 text-red-400" />
@@ -419,7 +297,6 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
 
         {/* Maps Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
-          {/* EEZ Map */}
           <div className={`relative aspect-video w-full rounded-[2.5rem] overflow-hidden border shadow-lg ${themeClasses.mapBorder}`}>
             <div className="absolute bottom-4 left-6 md:left-8 z-[1000] pointer-events-none drop-shadow-md">
               <h3 className="text-xl md:text-2xl font-bold tracking-wide">{t("eez_map")}</h3>
@@ -428,25 +305,16 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
             <EEZMap />
           </div>
 
-          {/* PFZ Map */}
           <div className={`relative aspect-video w-full rounded-[2.5rem] overflow-hidden border shadow-lg ${themeClasses.mapBorder} group`}>
             <div className="absolute bottom-4 left-6 md:left-8 z-[1000] pointer-events-none drop-shadow-md">
               <h3 className="text-xl md:text-2xl font-bold tracking-wide text-cyan-400">{t("pfz_map")}</h3>
               <p className="text-xs mt-1 uppercase tracking-widest font-semibold opacity-75">{t("pfz_desc")}</p>
-            </div>
-            <div className="absolute top-6 right-6 z-[1000] flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 rounded-full backdrop-blur-sm">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
-              </span>
-              <span className="text-emerald-400 text-xs font-bold tracking-widest uppercase">{t("live")}</span>
             </div>
             <PFZMap />
           </div>
         </div>
       </main>
 
-      {/* Floating Action Button (Voice Assistant) */}
       <button
         type="button"
         className={`fixed bottom-8 right-8 md:bottom-12 md:right-12 w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-transform duration-300 group z-50 border-2 ${themeClasses.fab}`}
@@ -457,6 +325,7 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
     </div>
   );
 }
+
 function MetricCard({
   icon,
   title,
@@ -471,11 +340,7 @@ function MetricCard({
   value: string;
   sub?: string;
   valueColor?: string;
-  themeClasses: {
-    cardBg: string;
-    cardIconText: string;
-    cardSub: string;
-  };
+  themeClasses: { cardBg: string; cardIconText: string; cardSub: string; };
   theme: ThemeMode;
 }) {
   const finalColor = (theme === "white" && valueColor === "text-white") 
@@ -486,18 +351,15 @@ function MetricCard({
     <div className={`backdrop-blur-lg border rounded-[2rem] p-5 flex flex-col justify-center transition-all duration-300 group hover:scale-[1.02] ${themeClasses.cardBg}`}>
       <div className={`flex items-center gap-2 mb-2 ${themeClasses.cardIconText}`}>
         {React.cloneElement(icon as React.ReactElement<{ className?: string }>, {
-          // Added shrink-0 so the icon doesn't squish if the title is long
           className: "w-5 h-5 opacity-80 group-hover:opacity-100 transition-opacity shrink-0", 
         })}
         <span className="text-sm font-semibold tracking-wide">{title}</span>
       </div>
-      
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-auto">
         <span className={`text-xl md:text-2xl lg:text-3xl font-bold leading-tight break-words ${finalColor}`}>
           {value}
         </span>
         {sub && (
-          // whitespace-nowrap ensures (31.51°C) or (1.18 M) stays on one single line
           <span className={`text-sm md:text-base font-medium whitespace-nowrap ${themeClasses.cardSub}`}>
             ({sub})
           </span>

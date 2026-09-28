@@ -2,13 +2,17 @@
 
 import React, { useEffect, useState } from "react";
 import "leaflet/dist/leaflet.css";
-// Removed LayersControl and WMSTileLayer imports
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 
 export default function EEZMap() {
   const [geoData, setGeoData] = useState(null);
+  
+  // 1. Reintroduce the mounted state
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true); // 2. Set to true only after component mounts in the browser
+    
     fetch("/data/eez.json")
       .then((res) => {
         if (!res.ok) throw new Error("File not found! Check public folder path.");
@@ -17,6 +21,13 @@ export default function EEZMap() {
       .then((data) => setGeoData(data))
       .catch((err) => console.error("Error loading EEZ data:", err));
   }, []);
+
+  // 3. Return a skeleton loader until mounted
+  if (!isMounted) {
+    return (
+      <div className="w-full h-full rounded-[2.5rem] overflow-hidden border border-[#0077B6]/30 shadow-lg relative z-0 bg-[#03045E] animate-pulse" />
+    );
+  }
 
   return (
     <div className="w-full h-full rounded-[2.5rem] overflow-hidden border border-[#0077B6]/30 shadow-lg relative z-0">
@@ -31,14 +42,12 @@ export default function EEZMap() {
         style={{ height: "100%", width: "100%", background: "#03045E" }}
         scrollWheelZoom={false}
       >
-        {/* Base Map */}
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           className="dark-map-tiles"
         />
 
-        {/* EEZ Zone Overlay */}
         {geoData && (
           <GeoJSON
             data={geoData}
