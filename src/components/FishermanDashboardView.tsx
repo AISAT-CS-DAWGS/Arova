@@ -40,6 +40,13 @@ const PFZMap = dynamic(() => import("@/components/PFZMap"), {
 export type ThemeMode = "ocean" | "white" | "black";
 export type SignalLevel = "good" | "moderate" | "weak" | "offline";
 
+export interface DailyForecast {
+  date: string;
+  waveMax: number;
+  windMax: number;
+  rainProb: number;
+}
+
 export interface OceanMetricItem {
   main: string;
   sub: string;
@@ -59,6 +66,7 @@ export interface OceanDataPayload {
   swellPeriod: OceanMetricItem;
   currentVelocity: OceanMetricItem;
   currentDirection: OceanMetricItem;
+  forecast: DailyForecast[];
 }
 
 interface Props {
@@ -291,6 +299,67 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
             <div>
               <h2 className="text-2xl font-bold text-red-400 mb-2">{t("live_data_unavailable")}</h2>
               <p className="max-w-lg mx-auto opacity-80">{t("data_error_message")}</p>
+            </div>
+          </div>
+        )}
+
+        {/* SINGLE CARD 7-Day Forecast Section */}
+        {initialData?.forecast && (
+          <div className="mb-12">
+            <div className={`p-6 md:p-8 rounded-[2.5rem] border backdrop-blur-lg transition-colors duration-300 ${themeClasses.cardBg}`}>
+              <h2 className={`text-xl md:text-2xl font-bold mb-4 tracking-wide ${theme === "white" ? "text-slate-800" : "text-white"}`}>
+                {t("Forecast") || "Week-Forecast"}
+              </h2>
+              
+              <div className="flex flex-col">
+                {initialData.forecast.map((day, idx) => {
+                  const dateObj = new Date(day.date);
+                  const translatedDay = new Intl.DateTimeFormat(lang, { weekday: 'short' }).format(dateObj);
+                  const isToday = idx === 0;
+                  const isLast = idx === initialData.forecast.length - 1;
+
+                  return (
+                    <div 
+                      key={day.date} 
+                      className={`flex items-center justify-between py-4 ${!isLast ? 'border-b border-current/10' : ''}`}
+                    >
+                      {/* Date Info */}
+                      <div className="flex flex-col w-20 md:w-32 shrink-0">
+                        <span className={`text-sm md:text-base font-bold uppercase tracking-widest ${themeClasses.cardIconText}`}>
+                          {isToday ? (t("today") || "Today") : translatedDay}
+                        </span>
+                        <span className={`text-xs md:text-sm font-medium mt-0.5 ${themeClasses.cardSub}`}>
+                          {dateObj.toLocaleDateString(lang, { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+
+                      {/* Metrics row */}
+                      <div className="flex items-center gap-3 md:gap-10 flex-1 justify-end">
+                        <div className="flex flex-col md:flex-row items-end md:items-center md:gap-2 w-14 md:w-auto text-right md:text-left">
+                          <span className={`text-[10px] md:text-xs font-semibold uppercase ${themeClasses.cardSub}`}>{t("wave") || "Wave"}</span>
+                          <span className={`text-sm md:text-base font-bold ${day.waveMax >= 2.5 ? "text-red-400" : theme === "white" ? "text-slate-900" : "text-white"}`}>
+                            {day.waveMax}m
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-col md:flex-row items-end md:items-center md:gap-2 w-16 md:w-auto text-right md:text-left">
+                          <span className={`text-[10px] md:text-xs font-semibold uppercase ${themeClasses.cardSub}`}>{t("wind") || "Wind"}</span>
+                          <span className={`text-sm md:text-base font-bold ${day.windMax >= 40 ? "text-red-400" : theme === "white" ? "text-slate-900" : "text-white"}`}>
+                            {day.windMax}kph
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row items-end md:items-center md:gap-2 w-12 md:w-auto text-right md:text-left">
+                          <span className={`text-[10px] md:text-xs font-semibold uppercase ${themeClasses.cardSub}`}>{t("rain") || "Rain"}</span>
+                          <span className={`text-sm md:text-base font-bold ${day.rainProb > 50 ? "text-sky-400" : theme === "white" ? "text-slate-900" : "text-white"}`}>
+                            {day.rainProb}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

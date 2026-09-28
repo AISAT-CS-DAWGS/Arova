@@ -49,9 +49,11 @@ function getDirection(degree: number | undefined | null) {
 
 async function getOceanData(lat: number, lon: number): Promise<OceanDataPayload | null> {
   try {
-    const owmKey = process.env.NEXT_OWM_API_KEY;
+    // Fallback included just in case the key is still named NEXT_PUBLIC locally
+    const owmKey = process.env.NEXT_OWM_API_KEY || process.env.NEXT_PUBLIC_OWM_API_KEY;
     if (!owmKey) throw new Error("OpenWeatherMap API Key is missing.");
 
+    // --- REAL-TIME DATA ---
     const weatherRes = await fetch(
       `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${owmKey}&units=metric`,
       { next: { revalidate: 1800 } }
@@ -65,6 +67,33 @@ async function getOceanData(lat: number, lon: number): Promise<OceanDataPayload 
     );
     if (!marineRes.ok) throw new Error("Failed to fetch marine data.");
     const marineData = await marineRes.json();
+
+    // --- 7-DAY FORECAST DATA (Cached for 3 hours to protect API limits) ---
+    const forecastWeatherRes = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,wind_speed_10m_max,precipitation_probability_max&timezone=auto`,
+      { next: { revalidate: 10800 } }
+    );
+    const forecastWeatherData = await forecastWeatherRes.json();
+
+    const forecastMarineRes = await fetch(
+      `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&daily=wave_height_max&timezone=auto`,
+      { next: { revalidate: 10800 } }
+    );
+    const forecastMarineData = await forecastMarineRes.json();
+
+    // Map the 7-day data into a clean array
+    const dailyForecast = forecastWeatherData.daily?.time?.map((dateStr: string, index: number) => {
+      const waveMax = forecastMarineData.daily?.wave_height_max?.[index] ?? 0;
+      const windMax = forecastWeatherData.daily?.wind_speed_10m_max?.[index] ?? 0;
+      const rainProb = forecastWeatherData.daily?.precipitation_probability_max?.[index] ?? 0;
+      
+      return {
+        date: dateStr,
+        waveMax: Number(waveMax.toFixed(1)),
+        windMax: Number(windMax.toFixed(1)),
+        rainProb: rainProb,
+      };
+    }) || [];
 
     const currentHourIndex = new Date().getHours();
 
@@ -126,6 +155,8 @@ async function getOceanData(lat: number, lon: number): Promise<OceanDataPayload 
         currentDirRaw !== null && currentDirRaw !== undefined
           ? { main: `Flowing ${currentDirStr}`, sub: `${currentDirRaw}°`, color: "text-white" }
           : { main: "Inland", key: "inland", sub: "N/A", color: "opacity-50" },
+      
+      forecast: dailyForecast,
     };
   } catch (error) {
     console.error("Ocean data fetch failed:", error);
