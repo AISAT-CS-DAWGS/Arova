@@ -1,32 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import "leaflet/dist/leaflet.css";
-
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const GeoJSON = dynamic(
-  () => import("react-leaflet").then((mod) => mod.GeoJSON),
-  { ssr: false }
-);
+import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 
 export default function EEZMap() {
   const [geoData, setGeoData] = useState(null);
   
-  // 1. Add a mounted state
+  // 1. Reintroduce the mounted state
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // 2. Set mounted to true immediately on the client
-    setIsMounted(true);
-
+    setIsMounted(true); // 2. Set to true only after component mounts in the browser
+    
     fetch("/data/eez.json")
       .then((res) => {
         if (!res.ok) throw new Error("File not found! Check public folder path.");
@@ -36,10 +22,10 @@ export default function EEZMap() {
       .catch((err) => console.error("Error loading EEZ data:", err));
   }, []);
 
-  // 3. HYDRATION FIX: Return a placeholder div that perfectly matches the map container's classes
+  // 3. Return a skeleton loader until mounted
   if (!isMounted) {
     return (
-      <div className="w-full h-full rounded-[2.5rem] overflow-hidden border border-[#0077B6]/30 shadow-lg relative z-0 bg-[#03045E]" />
+      <div className="w-full h-full rounded-[2.5rem] overflow-hidden border border-[#0077B6]/30 shadow-lg relative z-0 bg-[#03045E] animate-pulse" />
     );
   }
 
@@ -47,9 +33,7 @@ export default function EEZMap() {
     <div className="w-full h-full rounded-[2.5rem] overflow-hidden border border-[#0077B6]/30 shadow-lg relative z-0">
       
       <style>{`
-        .dark-map-tiles {
-          filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-        }
+        .dark-map-tiles { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
       `}</style>
 
       <MapContainer
@@ -63,14 +47,14 @@ export default function EEZMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           className="dark-map-tiles"
         />
-        
+
         {geoData && (
           <GeoJSON
             data={geoData}
             style={{
-              color: "#00F5D4", // Bright Cyan border
+              color: "#00F5D4",
               weight: 2,
-              fillColor: "#0077B6", // Deep blue fill
+              fillColor: "#0077B6",
               fillOpacity: 0.3,
             }}
           />

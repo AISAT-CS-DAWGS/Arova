@@ -49,7 +49,7 @@ function getDirection(degree: number | undefined | null) {
 
 async function getOceanData(lat: number, lon: number): Promise<OceanDataPayload | null> {
   try {
-    const owmKey = process.env.NEXT_PUBLIC_OWM_API_KEY;
+    const owmKey = process.env.NEXT_OWM_API_KEY;
     if (!owmKey) throw new Error("OpenWeatherMap API Key is missing.");
 
     const weatherRes = await fetch(

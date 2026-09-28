@@ -21,7 +21,7 @@ export default function LocationSelector({
     
     setLoading(true);
     try {
-      const apiKey = process.env.NEXT_PUBLIC_OWM_API_KEY;
+      const apiKey = process.env.NEXT_OWM_API_KEY;
       const res = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${apiKey}`);
       const data = await res.json();
       
@@ -47,7 +47,7 @@ export default function LocationSelector({
       async (pos) => {
         const { latitude, longitude } = pos.coords;
         try {
-          const apiKey = process.env.NEXT_PUBLIC_OWM_API_KEY;
+          const apiKey = process.env.NEXT_OWM_API_KEY;
           const res = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`);
           const data = await res.json();
           const name = data?.[0]?.name || "Current Location";
