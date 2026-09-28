@@ -22,8 +22,17 @@ import {
   Palette,
   Check
 } from "lucide-react";
-import EEZMap from "@/components/EEZMap";
-import PFZMap from "@/components/PFZMap";
+import dynamic from "next/dynamic";
+
+const EEZMap = dynamic(() => import("@/components/EEZMap"), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-[#03045E] animate-pulse rounded-[2.5rem]" />
+});
+
+const PFZMap = dynamic(() => import("@/components/PFZMap"), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-[#03045E] animate-pulse rounded-[2.5rem]" />
+});
 import LocationSelector from "@/components/LocationSelector";
 import { SUPPORTED_LANGUAGES, LanguageCode, translate } from "@/lib/translations";
 
@@ -412,7 +421,7 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
           {/* EEZ Map */}
           <div className={`relative aspect-video w-full rounded-[2.5rem] overflow-hidden border shadow-lg ${themeClasses.mapBorder}`}>
-            <div className="absolute top-4 left-6 md:left-8 z-[1000] pointer-events-none drop-shadow-md">
+            <div className="absolute bottom-4 left-6 md:left-8 z-[1000] pointer-events-none drop-shadow-md">
               <h3 className="text-xl md:text-2xl font-bold tracking-wide">{t("eez_map")}</h3>
               <p className="text-xs mt-1 uppercase tracking-widest font-semibold opacity-75">{t("eez_desc")}</p>
             </div>
@@ -421,7 +430,7 @@ export default function FishermanDashboardView({ initialData, locationName }: Pr
 
           {/* PFZ Map */}
           <div className={`relative aspect-video w-full rounded-[2.5rem] overflow-hidden border shadow-lg ${themeClasses.mapBorder} group`}>
-            <div className="absolute top-4 left-6 md:left-8 z-[1000] pointer-events-none drop-shadow-md">
+            <div className="absolute bottom-4 left-6 md:left-8 z-[1000] pointer-events-none drop-shadow-md">
               <h3 className="text-xl md:text-2xl font-bold tracking-wide text-cyan-400">{t("pfz_map")}</h3>
               <p className="text-xs mt-1 uppercase tracking-widest font-semibold opacity-75">{t("pfz_desc")}</p>
             </div>
